@@ -1,7 +1,8 @@
 %stet experiment parameters
 clear mmc
+pause(1);
 mmc.primaryPort = 'COM3';
-mmc.displayPorts = {'COM4','COM5','COM7','COM6'}; %ports 0,1,2,3
+mmc.displayPorts = {'COM4','COM5','COM7','COM6'}; %ports 1,2,3,4
 run_without_app = 1;
 
 %open connections to controllers 
@@ -32,10 +33,10 @@ while finished==0
     tic
     pokedPos = read(mmc.primarySerial,1,'uint8');
     
-    %check for 2nd poke within 0.5 s
-    while toc<0.5
+    %check for 2nd poke within 0.3 s
+    while toc<0.3
         if mmc.primarySerial.NumBytesAvailable>0 && read(mmc.primarySerial,1,'uint8')==10 && read(mmc.primarySerial,1,'uint8')~=pokedPos
-            finished=0;
+            finished=1;
         end
         pause(0.01)
     end
@@ -45,17 +46,16 @@ while finished==0
         write(mmc.primarySerial, [101, pokedPos], 'uint8');
         
         %display position number at poked position
-        write(mmc.displaySerial(pokedPos+1), 102, 'uint8');
-        
-        %give another reward at the poked position
-        write(mmc.primarySerial, [101, pokedPos], 'uint8');
+        write(mmc.displaySerial(pokedPos), [151 pokedPos], 'uint8');
+        %display stimulus at poked position
+% % %         vs = teensyComm(vs, 'Start-Pattern', param)
     end
     
     % update GUI
     if finished==1
         progress_text = 'experiment ended';
     else
-        progress_text = ['(poke 2 ports at the same time to end experiment) Position ' num2str(pokedPos) ' poked '];
+        progress_text = ['Position ' num2str(pokedPos) ' poked and rewarded'];
     end
     if run_without_app==0
         app.ProgressTextLabel.Text = progress_text;
@@ -69,5 +69,10 @@ end
  
 pause(1);
 
+%close serial connections
+clear mmc
+
 %save exp struct
-save(exp.metadata.savedir,'exp');
+if run_without_app==0
+    save(exp.metadata.savedir,'exp');
+end
