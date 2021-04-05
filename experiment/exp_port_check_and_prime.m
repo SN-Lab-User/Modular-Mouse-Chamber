@@ -1,12 +1,18 @@
 %stet experiment parameters
 clear mmc
+clear vs
 pause(1);
 mmc.port = 'COM3'; %serial port for modular-mouse-chamber arduino
-vs.port = {'COM4','COM5','COM7','COM6'}; %serial port for displays 1,2,3,4
+%serial ports for displays 1,2,3,4
+vs(1).port = 'COM4';
+vs(2).port = 'COM5';
+vs(3).port = 'COM7';
+vs(4).port = 'COM6'; 
 
 %open connections to controllers 
 mmc.controller = serialport(mmc.port,9600);
 vs = arduinoVisComm(vs, 'Connect');
+vs = arduinoVisComm(vs, 'Backlight-Off');
 
 %create data and metadata struct
 script_path = mfilename('fullpath');
@@ -47,13 +53,16 @@ while finished==0
         write(mmc.controller, [101, pokedPos], 'uint8');
         
         %display stimulus at poked position
-        param = create_stimulus('vertical gratings 1 Hz');
-        vs{pokedPos} = arduinoVisComm(vs{pokedPos}, 'Start-Pattern', param);
+%         param = create_stimulus('vertical grating 1 Hz');
+%         param = create_stimulus('backlight flicker 1.5 Hz');
+%         vs(pokedPos) = arduinoVisComm(vs(pokedPos), 'Start-Pattern', param);
+        vs(pokedPos) = arduinoVisComm(vs(pokedPos), 'Backlight-On');
         
         pause(1);
         
         %stop stimulus at poked position
-        vs{pokedPos} = arduinoVisComm(vs{pokedPos}, 'Stop-Pattern');
+%         vs(pokedPos) = arduinoVisComm(vs(pokedPos), 'Stop-Pattern');
+        vs(pokedPos) = arduinoVisComm(vs(pokedPos), 'Backlight-Off');
     end
     
     % update GUI
@@ -81,4 +90,4 @@ end
 
 %close serial connections
 clear mmc
-vs = arduinoVisComm(vs, 'Disconnect');
+clear vs
