@@ -11,8 +11,6 @@ void setup() {
   //set the valve pins to output and closes them
   for (pos = 0; pos <= 3; pos++) {
     pinMode(valvepins[pos], OUTPUT);    // sets the digital pin as output
-    digitalWrite(valvepins[pos], LOW);  // sets the digital pin high (closed)
-    delay(200);
     digitalWrite(valvepins[pos], HIGH);  // sets the digital pin high (closed)
   } 
 
@@ -35,16 +33,6 @@ void loop() {
          digitalWrite(valvepins[pos], LOW); //open valve at position
          delay(1000); //keep valve open for 1000 ms
          digitalWrite(valvepins[pos], HIGH); //close valve
-         
-
-        //testing purposes
-        delay(1000);
-         for (pos = 0; pos <= 3; pos++) {
-           digitalWrite(valvepins[pos], LOW);  // sets the digital pin high (closed)
-           delay(200);
-           digitalWrite(valvepins[pos], HIGH);  // sets the digital pin high (closed)
-         } 
-
          break; //finish reward
     }
   }
@@ -58,7 +46,7 @@ void loop() {
     }
   }
 
-  delay(10);
+  delay(100);
 }
 
 
