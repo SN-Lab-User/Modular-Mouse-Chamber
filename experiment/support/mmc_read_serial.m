@@ -1,19 +1,22 @@
 function tmp = mmc_read_serial(tmp)
 %
 %
-
+    
     while tmp.serial.NumBytesAvailable>0
         command = read(tmp.serial,1,'uint8');
+        
         if isfield(tmp,'log')
             N = length(tmp.log)+1-isempty(tmp.log(1).datenum);
         end
-
+        
         switch command
             case 0 %get program and version
-                bytes = read(tmp.serial,2,'uint8')';
-                tmp.program = typecast(uint8(bytes),'int16');
-                tmp.programnum = read(tmp.serial,1,'uint8');
-                tmp.version = read(tmp.serial,1,'uint8');
+                if tmp.serial.NumBytesAvailable>0
+                    bytes = read(tmp.serial,2,'uint8')';
+                    tmp.program = typecast(uint8(bytes),'int16');
+                    tmp.programnum = read(tmp.serial,1,'uint8');
+                    tmp.version = read(tmp.serial,1,'uint8');
+                end
 
             case 1 %get timestamp for clock synchronization
                 bytes = read(tmp.serial,4,'uint8')';
@@ -116,6 +119,8 @@ function tmp = mmc_read_serial(tmp)
 
             case 120 %toggle relay
                 tmp = log_timestamp(tmp,N);
+                bytes = read(tmp.serial,4,'uint8')';
+                tmp.log(N).duration = typecast(uint8(bytes),'single');
                 tmp.log(N).relay = read(tmp.serial,1,'uint8');
                 tmp.log(N).commandnum = command;
                 tmp.log(N).commandname = 'toggle relay';
@@ -127,6 +132,8 @@ function tmp = mmc_read_serial(tmp)
                 
             case 122 %read sensors
                 tmp = log_timestamp(tmp,N);
+                bytes = read(tmp.serial,4,'uint8')';
+                tmp.log(N).duration = typecast(uint8(bytes),'single');
                 tmp.log(N).commandnum = command;
                 tmp.log(N).commandname = 'read sensors';
                 
@@ -137,7 +144,7 @@ function tmp = mmc_read_serial(tmp)
 
             case 151 %temperature reading
                 bytes = read(tmp.serial,4,'uint8')';
-                millis = typecast(uint8(bytes),'int32');
+                millis = typecast(uint8(bytes),'uint32');
                 timestamp_num = addtodate(tmp.prog_start_datenum,millis,'millisecond');
                 tmp.log(1).temperature_time = [tmp.log(1).temperature_time timestamp_num];
                 
@@ -146,16 +153,25 @@ function tmp = mmc_read_serial(tmp)
                 tmp.log(1).temperature_read = [tmp.log(1).temperature_read temperature];
                 
             case 152 %sensor reading
-                tmp = log_timestamp(tmp,N);
-                tmp.log(N).sensor = read(tmp.serial,1,'uint8');
-                tmp.log(N).commandnum = command;
-                tmp.log(N).commandname = 'sensor read';
+                bytes = read(tmp.serial,4,'uint8')';
+                millis = typecast(uint8(bytes),'uint32');
+                tmpdatenum = addtodate(tmp.prog_start_datenum,millis,'millisecond');
+                tmpsensor = read(tmp.serial,1,'uint8');
+                
+                %only log if this sensor hasn't been read within previous second
+                if tmp.log(N-1).commandnum~=152 || etime(datevec(tmpdatenum),datevec(tmp.log(N-1).datenum))>=1
+                    tmp.log(N).datenum = tmpdatenum;
+                    tmp.log(N).datestr = datestr(tmpdatenum,'HH:MM:SS.fff');
+                    tmp.log(N).sensor = tmpsensor;
+                    tmp.log(N).commandnum = command;
+                    tmp.log(N).commandname = 'sensor read';
+                end
                 
             case 200 %stop command
                 tmp = log_timestamp(tmp,N);
                 tmp.log(N).commandnum = command;
                 tmp.log(N).commandname = 'stop';
-
+                
             otherwise %get message
                 tmp = log_timestamp(tmp,N);
                 tmp.log(N).commandnum = command;
@@ -169,7 +185,7 @@ end
 
 function tmp = log_timestamp(tmp,N)
     bytes = read(tmp.serial,4,'uint8')';
-    millis = typecast(uint8(bytes),'int32');
+    millis = typecast(uint8(bytes),'uint32');
     tmp.log(N).datenum = addtodate(tmp.prog_start_datenum,millis,'millisecond');
     tmp.log(N).datestr = datestr(tmp.log(N).datenum,'HH:MM:SS.fff');
 end

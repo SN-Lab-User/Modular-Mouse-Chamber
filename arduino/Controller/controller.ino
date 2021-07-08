@@ -27,17 +27,17 @@ typedef union {
 } binaryInt;
 
 typedef union {
-  long longInteger;
+  unsigned long longInteger;
   byte binary[4];
 } binaryLong;
 
 //initialize variables
-uint8_t sensorVal, pin, commandID, tmp;
-binaryLong curT, timestamp;
+uint8_t pin, commandID, tmp, i;
+int sensorVal;
+binaryLong timestamp;
 binaryFloat dur;
 binaryInt programID;
-long startTime;
-int i;
+unsigned long startTime, sentTime;
 int readDelay = 10;
 bool endCommand = 0;
 
@@ -76,7 +76,7 @@ bool check4end() {
       Serial.write(timestamp.binary,4);
     } 
   }
-  //end pattern if duration is reached
+  //end current command if duration is reached
   if ((dur.floatingPoint>0) && ((millis()-startTime)>=(dur.floatingPoint*1000)-1)) {
     endCommand = 1;
   }
@@ -143,12 +143,15 @@ void loop() { //main program loop
       pin = Serial.read(); //byte 5
       
       //send pattern parameters back for verification
+      Serial.write(commandID);
+      timestamp.longInteger = millis();
+      Serial.write(timestamp.binary,4);
       Serial.write(dur.binary,4);
       Serial.write(pin);
 
-      digitalWrite(relayPins[pin-1], HIGH);
-      delay(1000*dur.floatingPoint);
       digitalWrite(relayPins[pin-1], LOW);
+      delay(1000*dur.floatingPoint);
+      digitalWrite(relayPins[pin-1], HIGH);
       break;
 
 
@@ -162,22 +165,27 @@ void loop() { //main program loop
       dur.binary[3] = Serial.read(); //byte 4
 
       //send pattern parameters back for verification
+      Serial.write(commandID);
+      timestamp.longInteger = millis();
+      Serial.write(timestamp.binary,4);
       Serial.write(dur.binary,4);
 
       startTime = millis();
-      curT.longInteger = 0;
+      endCommand = check4end();
       while (endCommand==0) {
-        curT.longInteger=1000*(millis()-startTime);
-        for (i=0;i<3;i++) {
+        timestamp.longInteger = millis();
+        for (i=0;i<4;i++) {
           sensorVal = analogRead(sensorPins[i]);
-          if (sensorVal<128) {
+          if ((sensorVal<512) && ((millis()-sentTime)>500)){
             Serial.write(152);
-            Serial.write(curT.binary,4);
-            Serial.write(i);
-            endCommand=1;
+            Serial.write(timestamp.binary,4);
+            Serial.write(i+1);
+            sentTime = millis();
             break;
           }
         }
+        delay(2);
+        endCommand = check4end();
       }
       break;
 

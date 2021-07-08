@@ -36,6 +36,15 @@ switch lower(name)
         pattern.predelay = 0;
         pattern.trigger = 0;
         
+    case 'middle rectangle 1s'
+        pattern.color1 = [0 0 1]; 
+        pattern.backgroundcolor = [0 0 0];
+        pattern.position = [160 120 64 240]; 
+        pattern.frequency = 1; 
+        pattern.duration = 1; 
+        pattern.predelay = 0;
+        pattern.trigger = 0;
+        
     otherwise
         error('pattern name not recognized')
 end

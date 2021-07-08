@@ -15,18 +15,17 @@ for i = 1:length(splist)
     pause(2);
     
     %send version query to serial object
-    write(tmp.serial,0,'uint8'); %command to send back version number
     mmc_send_command(tmp, 'Get-version')
-    while (tmp.serial.NumBytesAvailable<1)
-        pause(0.01);
-    end
+    pause(0.5);
     tmp = mmc_read_serial(tmp); %read and parse incoming serial data
         
     %get timestamp for program start
     mmc_send_command(tmp, 'Get-timestamp')
+    tic
     while (tmp.serial.NumBytesAvailable<1)
         pause(0.01);
     end
+    toc
     tmp = mmc_read_serial(tmp);
      
     if isfield(tmp,'program')
