@@ -21,11 +21,9 @@ for i = 1:length(splist)
         
     %get timestamp for program start
     mmc_send_command(tmp, 'Get-timestamp')
-    tic
     while (tmp.serial.NumBytesAvailable<1)
         pause(0.01);
     end
-    toc
     tmp = mmc_read_serial(tmp);
      
     if isfield(tmp,'program')

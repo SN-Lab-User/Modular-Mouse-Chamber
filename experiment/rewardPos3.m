@@ -6,21 +6,23 @@ rewardPos = 3;
 num_trials = 30;
 num_channels = 6; %number of data channels
 trial_timeout = 30; 
-reward_dur = 0.2;
+reward_dur = 0.5;
 
 %connect to setup
 [controller, display1, display2, display3, display4] = mmc_connect();
 
 %create data and metadata struct
-exp.data = nan(num_trials,num_channels);
-           
+pretrial_start_times = nan(1,num_trials);
+trial_start_times = nan(1,num_trials);
+first_choice_times = nan(1,num_trials);
+correct_choice_times = nan(1,num_trials);
+incorrect_choice_times = nan(1,num_trials);
+
 % run experiment
-expstarttime = clock;
-trial_timestamps = nan(num_trials,2);
 
 for t = 1:num_trials
     if exp.stop==0
-        trial_timestamps(t,1) = now; %log pre trial start timestamp
+        pretrial_start_times(t) = now; %log pre trial start timestamp
         
         %calculate progress of the experiment and update GUI
         progress_text = ['Trial ' num2str(t) ' of ' num2str(num_trials)];
@@ -57,6 +59,8 @@ for t = 1:num_trials
                 end_cond = 1;
                 stop_trial = t;
             end
+            
+            pause(0.01);
         end
 
         %after port 1 poke: stop display and sensor reads; give reward
@@ -71,7 +75,8 @@ for t = 1:num_trials
     end
     
     if exp.stop==0
-        trial_timestamps(t,2) = now; %log reward trial start timestamp
+        trial_start_times(t) = now; %log reward trial start timestamp
+        
         %send stimulus to display at all possible reward position
         mmc_send_command(display2, 'Display-rectangle', 'middle rectangle');
         mmc_send_command(display3, 'Display-rectangle', 'middle rectangle');
@@ -84,15 +89,30 @@ for t = 1:num_trials
         %check for pokes or trial
         end_cond = 0;
         give_reward = 0;
+        first_choice = 0;
         while end_cond==0
             controller = mmc_read_serial(controller);
 
             for i = length(controller.log)
                 if etime(datevec(controller.log(i).datenum),trialstarttime)>0
                     if strcmp(controller.log(i).commandname,'sensor read')
+                        current_time = now;
+                        if first_choice==0
+                            first_choice=1;
+                            first_choice_times(t) = current_time;
+                        end
                         if controller.log(i).sensor==rewardPos
+                            correct_choice_times(t) = current_time;
                             end_cond = 1;
                             give_reward = 1;
+                        else
+                            num_incorrect_pokes = sum(~isnan(incorrect_choice_times(:,t)));
+                            if size(incorrect_choice_times,1)<(num_incorrect_pokes+1)
+                                incorrect_choice_times(end+1,:) = nan;
+                            end
+                            incorrect_choice_times(num_incorrect_pokes+1,t) = current_time;
+                            
+                            fprintf(['incorrect poke - ' num2str(num_incorrect_pokes) ' - ' num2str(size(incorrect_choice_times))]);
                         end
                     end
                 end
@@ -100,6 +120,8 @@ for t = 1:num_trials
             if etime(clock,trialstarttime)>trial_timeout
                 end_cond = 1;
             end
+            
+            pause(0.01);
         end
 
         %after port 3 poke or timeout: stop display and sensor reads; give reward
@@ -119,12 +141,33 @@ for t = 1:num_trials
         drawnow %update graphics    
     end
 end 
- 
+
 %save exp struct
 exp.controller = controller;
 exp.display1 = display1;
 exp.display2 = display2;
 exp.display3 = display3;
 exp.display4 = display4;
-exp.trial_timestamps = trial_timestamps;
+exp.controller.serial = '';
+exp.display1.serial = '';
+exp.display2.serial = '';
+exp.display3.serial = '';
+exp.display4.serial = '';
+exp.pretrial_start_time = pretrial_start_times;
+exp.trial_start_times = trial_start_times;
+exp.first_choice_times = first_choice_times;
+exp.correct_choice_times = correct_choice_times;
+exp.incorrect_choice_times = incorrect_choice_times;
+
 save(exp.metadata.savedir,'exp');
+
+%calculate progress of the experiment and update GUI
+timestr = datestr(now,'HH:MM');
+progress_text = ['Experiment complete (' timestr ')'];
+app.ProgressTextLabel.Text = progress_text;
+progress = 100;
+app.ph.XData = [0 progress progress 0]; 
+drawnow %update graphics    
+%%%disable (stop exp)
+%%%enable run exp
+        
