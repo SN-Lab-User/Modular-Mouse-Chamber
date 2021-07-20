@@ -11,7 +11,7 @@ splist = serialportlist("available");
 %for every available serial port, query for version #
 for i = 1:length(splist)
     %start serial connection with current available port
-    tmp.serial = serialport(splist(i),115200,"Timeout",5);
+    tmp.serial = serialport(splist(i),57600,"Timeout",5);
     pause(2);
     
     %send version query to serial object

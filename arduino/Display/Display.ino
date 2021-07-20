@@ -1,6 +1,6 @@
 //set program ID
 uint16_t programIDint = 9340; //ILI9340-based display
-uint8_t programNum = 4; //controller #
+uint8_t programNum = 1; //controller #
 uint8_t versionID = 1; 
 
 bool rundemo = 0; //for testing displays without scripts
@@ -66,7 +66,7 @@ binaryInt programID;
 
 /////////setup (runs once)
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(57600);
   pinMode(BACKLIGHT, OUTPUT);
   pinMode(TRIG_IN, INPUT);
   pinMode(TRIG_OUT, OUTPUT);

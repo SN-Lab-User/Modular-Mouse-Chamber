@@ -45,7 +45,7 @@ bool endCommand = 0;
 //setup (runs once)
 void setup() {
   programID.integer = programIDint;
-  Serial.begin(115200);
+  Serial.begin(57600);
 
   //set output pins
   for (i=0;i<8;i++) {

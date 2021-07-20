@@ -19,7 +19,7 @@ correct_choice_times = nan(1,num_trials);
 incorrect_choice_times = nan(1,num_trials);
 
 % run experiment
-
+current_log = 1;
 for t = 1:num_trials
     if exp.stop==0
         pretrial_start_times(t) = now; %log pre trial start timestamp
@@ -44,13 +44,16 @@ for t = 1:num_trials
         end_cond = 0;
         while end_cond==0
             controller = mmc_read_serial(controller);
-
-            for i = length(controller.log)
-                if etime(datevec(controller.log(i).datenum), pretrialstarttime)>0
-                    if strcmp(controller.log(i).commandname,'sensor read')
-                        if controller.log(i).sensor==1
-                            end_cond = 1;
-                            give_reward = 1;
+            
+            if length(controller.log)>current_log
+                for i = current_log+1:length(controller.log)
+                    current_log = i;
+                    if etime(datevec(controller.log(i).datenum), pretrialstarttime)>0
+                        if strcmp(controller.log(i).commandname,'sensor read')
+                            if controller.log(i).sensor==1
+                                end_cond = 1;
+                                give_reward = 1;
+                            end
                         end
                     end
                 end
@@ -93,26 +96,29 @@ for t = 1:num_trials
         while end_cond==0
             controller = mmc_read_serial(controller);
 
-            for i = length(controller.log)
-                if etime(datevec(controller.log(i).datenum),trialstarttime)>0
-                    if strcmp(controller.log(i).commandname,'sensor read')
-                        current_time = now;
-                        if first_choice==0
-                            first_choice=1;
-                            first_choice_times(t) = current_time;
-                        end
-                        if controller.log(i).sensor==rewardPos
-                            correct_choice_times(t) = current_time;
-                            end_cond = 1;
-                            give_reward = 1;
-                        else
-                            num_incorrect_pokes = sum(~isnan(incorrect_choice_times(:,t)));
-                            if size(incorrect_choice_times,1)<(num_incorrect_pokes+1)
-                                incorrect_choice_times(end+1,:) = nan;
+            if length(controller.log)>current_log
+                for i = current_log+1:length(controller.log)
+                    current_log = i;
+                    if etime(datevec(controller.log(i).datenum),trialstarttime)>0
+                        if strcmp(controller.log(i).commandname,'sensor read')
+                            current_time = now;
+                            if first_choice==0
+                                first_choice=1;
+                                first_choice_times(t) = current_time;
                             end
-                            incorrect_choice_times(num_incorrect_pokes+1,t) = current_time;
-                            
-                            fprintf(['incorrect poke - ' num2str(num_incorrect_pokes) ' - ' num2str(size(incorrect_choice_times))]);
+                            if controller.log(i).sensor==rewardPos
+                                correct_choice_times(t) = current_time;
+                                end_cond = 1;
+                                give_reward = 1;
+                            else
+                                num_incorrect_pokes = sum(~isnan(incorrect_choice_times(:,t)));
+                                if size(incorrect_choice_times,1)<(num_incorrect_pokes+1)
+                                    incorrect_choice_times(end+1,:) = nan;
+                                end
+                                incorrect_choice_times(num_incorrect_pokes+1,t) = current_time;
+
+                                fprintf(['incorrect poke - ' num2str(num_incorrect_pokes) ' - ' num2str(size(incorrect_choice_times))]);
+                            end
                         end
                     end
                 end
@@ -134,6 +140,11 @@ for t = 1:num_trials
             mmc_send_command(controller, 'Toggle-relay', param);
         end
     else
+        mmc_send_command(display2, 'Stop');
+        mmc_send_command(display3, 'Stop');
+        mmc_send_command(display4, 'Stop');
+        mmc_send_command(controller, 'Stop');
+        
         progress_text = ['Experiment stopped at trial ' num2str(stop_trial)];
         app.ProgressTextLabel.Text = progress_text;
         progress = 100*stop_trial/num_trials;
@@ -168,6 +179,7 @@ app.ProgressTextLabel.Text = progress_text;
 progress = 100;
 app.ph.XData = [0 progress progress 0]; 
 drawnow %update graphics    
-%%%disable (stop exp)
-%%%enable run exp
+app.StopSetup1Button.Enable = 'off';
+app.RunSetup1Button.Enable = 'on';
+
         

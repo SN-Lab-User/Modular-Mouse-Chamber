@@ -62,5 +62,10 @@ exp.display1 = display1;
 exp.display2 = display2;
 exp.display3 = display3;
 exp.display4 = display4;
+exp.controller.serial = '';
+exp.display1.serial = '';
+exp.display2.serial = '';
+exp.display3.serial = '';
+exp.display4.serial = '';
 save(exp.metadata.savedir,'exp');
 clear all
