@@ -1,7 +1,7 @@
 global exp
 
 %set experiment parameters
-rewardPos = 3;
+rewardPos = 2;
 % startPos = 1;
 num_trials = 30;
 num_channels = 6; %number of data channels

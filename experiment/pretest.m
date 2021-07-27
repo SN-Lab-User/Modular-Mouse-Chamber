@@ -1,6 +1,6 @@
 global exp
 
-reward_dur = 0.5;
+reward_dur = 0.1;
 
 %connect to setup
 [controller, display1, display2, display3, display4] = mmc_connect();
