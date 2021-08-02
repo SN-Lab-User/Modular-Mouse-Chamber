@@ -7,7 +7,8 @@ num_trials = 30;
 num_channels = 6; %number of data channels
 trial_timeout = 30; %s
 exp_timeout = 30; %min
-reward_dur = 0.1;
+prereward_dur = 0.075;
+correctreward_dur = 0.15;
 
 %connect to setup
 [controller, display1, display2, display3, display4] = mmc_connect();
@@ -76,7 +77,7 @@ for t = 1:num_trials
         mmc_send_command(display1, 'Stop');
         mmc_send_command(controller, 'Stop');
         if give_reward==1
-            param.duration = reward_dur; param.relay = 1; 
+            param.duration = prereward_dur; param.relay = 1; 
             mmc_send_command(controller, 'Toggle-relay', param);
         end
 
@@ -136,13 +137,13 @@ for t = 1:num_trials
             pause(0.01);
         end
             
-        %after port 3 poke or timeout: stop display and sensor reads; give reward
+        %after correct port poke or timeout: stop display and sensor reads; give reward
         mmc_send_command(display2, 'Stop');
         mmc_send_command(display3, 'Stop');
         mmc_send_command(display4, 'Stop');
         mmc_send_command(controller, 'Stop');
         if give_reward==1
-            param.duration = reward_dur; param.relay = rewardPos; 
+            param.duration = correctreward_dur; param.relay = rewardPos; 
             mmc_send_command(controller, 'Toggle-relay', param);
         end
     else
