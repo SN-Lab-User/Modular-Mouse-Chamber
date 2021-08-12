@@ -2,13 +2,13 @@ global exp
 
 %set experiment parameters
 rewardPos = 2;
-% startPos = 1;
+startPos = 1;
 num_trials = 30;
 num_channels = 6; %number of data channels
-trial_timeout = 30; %s
+trial_timeout = 30; %min
 exp_timeout = 30; %min
-prereward_dur = 0.075;
-correctreward_dur = 0.15;
+prereward_dur = 0.1;
+correctreward_dur = 0.1;
 
 %connect to setup
 [controller, display1, display2, display3, display4] = mmc_connect();
@@ -16,6 +16,7 @@ correctreward_dur = 0.15;
 %create data and metadata struct
 pretrial_start_times = nan(1,num_trials);
 trial_start_times = nan(1,num_trials);
+first_choice = nan(1,num_trials);
 first_choice_times = nan(1,num_trials);
 correct_choice_times = nan(1,num_trials);
 incorrect_choice_times = nan(1,num_trials);
@@ -50,7 +51,6 @@ for t = 1:num_trials
             
             if length(controller.log)>current_log
                 for i = current_log+1:length(controller.log)
-                    current_log = i;
                     if etime(datevec(controller.log(i).datenum), pretrialstarttime)>0
                         if strcmp(controller.log(i).commandname,'sensor read')
                             if controller.log(i).sensor==1
@@ -60,6 +60,7 @@ for t = 1:num_trials
                         end
                     end
                 end
+                current_log = length(controller.log);
             end
             if etime(clock,expstarttime)>exp_timeout*60
                 exp.stop = 1;
@@ -99,38 +100,39 @@ for t = 1:num_trials
         %check for pokes or trial
         end_cond = 0;
         give_reward = 0;
-        first_choice = 0;
         while end_cond==0
             controller = mmc_read_serial(controller);
 
             if length(controller.log)>current_log
                 for i = current_log+1:length(controller.log)
-                    current_log = i;
                     if etime(datevec(controller.log(i).datenum),trialstarttime)>0
                         if strcmp(controller.log(i).commandname,'sensor read')
                             current_time = now;
-                            if first_choice==0
-                                first_choice=1;
-                                first_choice_times(t) = current_time;
-                            end
-                            if controller.log(i).sensor==rewardPos
+                            if controller.log(i).sensor == rewardPos
+                                if isnan(first_choice(t))
+                                    first_choice(t) = 1;
+                                    first_choice_times(t) = current_time;
+                                end
                                 correct_choice_times(t) = current_time;
                                 end_cond = 1;
                                 give_reward = 1;
-                            else
+                            elseif controller.log(i).sensor ~= startPos
+                                if isnan(first_choice(t))
+                                    first_choice(t) = 0;
+                                    first_choice_times(t) = current_time;
+                                end
                                 num_incorrect_pokes = sum(~isnan(incorrect_choice_times(:,t)));
                                 if size(incorrect_choice_times,1)<(num_incorrect_pokes+1)
                                     incorrect_choice_times(end+1,:) = nan;
                                 end
                                 incorrect_choice_times(num_incorrect_pokes+1,t) = current_time;
-
-                                fprintf(['incorrect poke - ' num2str(num_incorrect_pokes) ' - ' num2str(size(incorrect_choice_times))]);
                             end
                         end
                     end
                 end
+                current_log = length(controller.log);
             end
-            if etime(clock,trialstarttime)>trial_timeout
+            if etime(clock,trialstarttime)>(trial_timeout*60)
                 end_cond = 1;
             end
             
@@ -173,6 +175,7 @@ exp.display3.serial = '';
 exp.display4.serial = '';
 exp.pretrial_start_time = pretrial_start_times;
 exp.trial_start_times = trial_start_times;
+exp.first_choice = first_choice;
 exp.first_choice_times = first_choice_times;
 exp.correct_choice_times = correct_choice_times;
 exp.incorrect_choice_times = incorrect_choice_times;
