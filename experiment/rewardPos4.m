@@ -135,7 +135,10 @@ for t = 1:num_trials
             if etime(clock,trialstarttime)>(trial_timeout*60)
                 end_cond = 1;
             end
-            
+            if exp.stop==1
+                end_cond = 1;
+                stop_trial = t;
+            end
             pause(0.01);
         end
             
